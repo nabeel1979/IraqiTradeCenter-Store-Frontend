@@ -1,0 +1,128 @@
+@tailwind base;
+
+@tailwind components;
+
+@tailwind utilities;
+
+
+
+@layer base {
+
+  :root {
+
+    --brand: 36 58% 36%;
+
+  }
+
+
+
+  * { box-sizing: border-box; }
+
+
+
+  html { font-family: 'Cairo', 'Inter', sans-serif; }
+
+
+
+  body {
+
+    @apply bg-surface text-gray-900 antialiased;
+
+    background-image:
+
+      radial-gradient(ellipse 120% 80% at 100% 0%, hsl(36 58% 36% / 0.05), transparent 55%),
+
+      radial-gradient(ellipse 80% 60% at 0% 100%, hsl(38 58% 56% / 0.04), transparent 50%);
+
+  }
+
+
+
+  html.theme-company-store body {
+
+    background-image:
+
+      radial-gradient(ellipse 120% 80% at 100% 0%, hsl(38 58% 56% / 0.08), transparent 55%),
+
+      radial-gradient(ellipse 80% 60% at 0% 100%, hsl(36 58% 36% / 0.05), transparent 50%);
+
+  }
+
+
+
+  .dark body {
+
+    @apply bg-gray-950 text-gray-100;
+
+    background-image: none;
+
+  }
+
+
+
+  html.theme-company-store.dark body {
+
+    background-image:
+
+      radial-gradient(ellipse 90% 70% at 100% 0%, hsl(38 58% 56% / 0.06), transparent 50%);
+
+  }
+
+
+
+  [dir='rtl'] { direction: rtl; }
+
+  [dir='ltr'] { direction: ltr; }
+
+}
+
+
+
+@layer components {
+
+  .btn-primary {
+
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-300 disabled:opacity-50 disabled:cursor-not-allowed;
+
+  }
+
+  .btn-outline {
+
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 transition-all hover:bg-gray-100 focus:outline-none dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800;
+
+  }
+
+  .card {
+
+    @apply rounded-2xl border border-gray-200/80 bg-surface-card shadow-sm dark:border-gray-800 dark:bg-gray-900;
+
+  }
+
+  .input {
+
+    @apply w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm shadow-sm placeholder:text-gray-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:placeholder:text-gray-500;
+
+  }
+
+  .badge {
+
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold;
+
+  }
+
+  .num-display {
+
+    font-variant-numeric: tabular-nums;
+
+    font-feature-settings: 'tnum' 1, 'lnum' 1;
+
+    direction: ltr;
+
+    unicode-bidi: isolate;
+
+    display: inline-block;
+
+  }
+
+}
+
