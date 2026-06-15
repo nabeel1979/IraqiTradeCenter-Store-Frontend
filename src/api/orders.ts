@@ -30,8 +30,10 @@ export const ordersApi = {
       },
     }).then((r) => r.data),
 
-  get: (id: string) =>
-    client.get<Order>(`/api/store/orders/${id}`).then((r) => r.data),
+  get: (companyCode: string, id: string, sourceType: 'Order' | 'Invoice' = 'Order') =>
+    client.get<Order>(`/api/store/orders/${companyCode}/${id}`, {
+      params: { sourceType },
+    }).then((r) => r.data),
 };
 
 export type { CartItem };

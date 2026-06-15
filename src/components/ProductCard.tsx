@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { ShoppingCart, Building2, Package } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/i18n';
@@ -5,6 +6,8 @@ import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import type { Product } from '@/types';
 import { useCartStore } from '@/store/cartStore';
+import { applyCustomerPrices, getDefaultPurchasableUnit, getUnitStock, isProductPurchasable } from '@/lib/productAvailability';
+import { useCustomerPriceMap } from '@/hooks/useCustomerPriceMap';
 import { encodeImageUrl, formatNumber } from '@/lib/utils';
 import { AmountCurrency } from '@/components/ui/AmountCurrency';
 
@@ -15,22 +18,40 @@ interface Props {
 export function ProductCard({ product }: Props) {
   const { t } = useTranslation();
   const isAr = i18n.language === 'ar';
-  const unitLabel = isAr ? product.unitOfMeasureName : (product.unitOfMeasureNameEn || product.unitOfMeasureName);
   const addItem = useCartStore((s) => s.addItem);
+  const priceMap = useCustomerPriceMap();
+  const pricedProduct = useMemo(
+    () => applyCustomerPrices(product, priceMap.get(product.companyCode.toUpperCase())),
+    [product, priceMap],
+  );
   const imageSrc = product.imageUrl ? encodeImageUrl(product.imageUrl) : null;
+
+  const displayUnit = getDefaultPurchasableUnit(pricedProduct);
+  if (!isProductPurchasable(pricedProduct) || !displayUnit) return null;
+
+  const unitLabel = isAr ? displayUnit.name : (displayUnit.nameEn || displayUnit.name);
+  const stockInUnit = getUnitStock(pricedProduct, displayUnit);
 
   const handleAdd = (e: React.MouseEvent) => {
     e.preventDefault();
+    const existing = useCartStore.getState().items.find(
+      (i) => i.productId === product.id && i.companyCode === product.companyCode && i.unitOfMeasureId === displayUnit.unitId,
+    );
+    const inCart = existing?.quantity ?? 0;
+    if (inCart + 1 > stockInUnit) {
+      toast.error(t('exceedsStock', { max: formatNumber(Math.max(0, stockInUnit - inCart)) }));
+      return;
+    }
     addItem({
       productId: product.id,
       productName: product.name,
       companyCode: product.companyCode,
       companyName: product.companyName,
-      unitOfMeasureId: product.unitOfMeasureId,
-      unitOfMeasureName: product.unitOfMeasureName,
+      unitOfMeasureId: displayUnit.unitId,
+      unitOfMeasureName: unitLabel,
       quantity: 1,
-      unitPrice: product.sellingPrice,
-      currency: product.currency ?? 'IQD',
+      unitPrice: displayUnit.price,
+      currency: displayUnit.currency ?? product.currency ?? 'IQD',
     });
     toast.success(t('addedToCart'));
   };
@@ -77,20 +98,20 @@ export function ProductCard({ product }: Props) {
         <div className="mt-auto flex items-center justify-between">
           <div>
             <AmountCurrency
-              amount={product.sellingPrice}
-              currency={product.currency}
+              amount={displayUnit.price}
+              currency={displayUnit.currency ?? product.currency}
               amountClassName="text-base font-bold text-brand-600 dark:text-brand-400"
             />
             <p className="text-xs text-gray-400">
-              {product.currentStock > 0
-                ? <>{t('stock')}: <span className="num-display">{formatNumber(product.currentStock)}</span></>
+              {stockInUnit > 0
+                ? <>{t('stock')}: <span className="num-display">{formatNumber(stockInUnit)}</span></>
                 : t('outOfStock')}
             </p>
           </div>
 
           <button
             onClick={handleAdd}
-            disabled={product.currentStock <= 0}
+            disabled={stockInUnit <= 0}
             className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500 text-white transition hover:bg-brand-600 disabled:opacity-40"
           >
             <ShoppingCart className="h-4 w-4" />

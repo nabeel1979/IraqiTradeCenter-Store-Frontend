@@ -52,17 +52,27 @@ function deriveExtraUnits(
 }
 
 function mapUnit(raw: Record<string, unknown>, companyCode: string, fallbackCurrency: string): ProductUnit | null {
-  const unitId = Number(raw.unitId ?? raw.id ?? 0);
-  const name = String(raw.name ?? raw.unitName ?? '').trim();
+  const unitId = Number(raw.unitId ?? raw.UnitId ?? raw.id ?? 0);
+  const name = String(raw.name ?? raw.Name ?? raw.unitName ?? '').trim();
   if (!name) return null;
-  const price = Number(raw.price ?? raw.salesPrice ?? 0);
+  const price = Number(raw.price ?? raw.Price ?? raw.salesPrice ?? 0);
+  const salePricesRaw = raw.salePrices ?? raw.SalePrices;
+  let salePrices: Partial<Record<number, number>> | undefined;
+  if (salePricesRaw && typeof salePricesRaw === 'object') {
+    salePrices = {};
+    for (const [k, v] of Object.entries(salePricesRaw as Record<string, unknown>)) {
+      const num = Number(v);
+      if (num > 0) salePrices[Number(k)] = num;
+    }
+  }
   return {
     unitId: resolveUnitId(companyCode, name, unitId),
     name,
-    nameEn: raw.nameEn ? String(raw.nameEn) : raw.unitNameEn ? String(raw.unitNameEn) : undefined,
+    nameEn: raw.nameEn ? String(raw.nameEn) : raw.NameEn ? String(raw.NameEn) : raw.unitNameEn ? String(raw.unitNameEn) : undefined,
     price,
-    factorToBase: Number(raw.factorToBase ?? 1) || 1,
-    currency: raw.currency ? String(raw.currency).toUpperCase() : fallbackCurrency,
+    factorToBase: Number(raw.factorToBase ?? raw.FactorToBase ?? 1) || 1,
+    currency: raw.currency ? String(raw.currency).toUpperCase() : raw.Currency ? String(raw.Currency).toUpperCase() : fallbackCurrency,
+    salePrices,
   };
 }
 
@@ -91,8 +101,8 @@ export function mapStoreProduct(raw: Product & Record<string, unknown>): Product
     }];
   }
 
-  // إثراء الوحدات من الوصف عندما يُرجع الـ API وحدة واحدة فقط
-  if (units.length === 1) {
+  // إثراء الوحدات من الوصف عندما لا يُرجع الـ API وحداتاً
+  if (units.length === 1 && !(Array.isArray(raw.units) && raw.units.length > 0)) {
     const extras = deriveExtraUnits(
       units[0],
       raw.description ? String(raw.description) : undefined,

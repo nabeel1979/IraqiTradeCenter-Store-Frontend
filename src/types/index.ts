@@ -16,6 +16,7 @@ export interface StoreUser {
   accountType: AccountType;
   isVerified: boolean;
   isProfileCompleted?: boolean;
+  contactLocked?: boolean;
   createdAt: string;
 }
 
@@ -66,6 +67,7 @@ export interface ProductUnit {
   price: number;
   factorToBase: number;   // base units per 1 of this unit
   currency?: string;
+  salePrices?: Partial<Record<number, number>>;
 }
 
 export interface Product {
@@ -112,11 +114,17 @@ export interface CompanyFinancial {
   linked: boolean;
   customerCode?: string | null;
   businessName?: string | null;
+  accountId?: number | null;
+  accountCode?: string | null;
+  accountName?: string | null;
+  accountNameAr?: string | null;
+  accountNameEn?: string | null;
   creditLimit: number;
   currentBalance: number;
   availableCredit?: number | null;
   lastActivity?: string | null;
   isActive: boolean;
+  salesPriceType?: number | null;
 }
 
 export interface StatementLine {
@@ -124,20 +132,70 @@ export interface StatementLine {
   companyCode: string;
   companyName: string;
   docType: 'Invoice' | 'Payment';
+  docId: number;
   docNumber: string;
+  currency: string;
   debit: number;
   credit: number;
   balance: number;
 }
 
-export interface AccountStatement {
-  from: string;
-  to: string;
+export interface StatementCurrencyBlock {
+  currency: string;
   openingBalance: number;
   closingBalance: number;
   totalDebit: number;
   totalCredit: number;
   lines: StatementLine[];
+}
+
+export interface AccountStatement {
+  from: string;
+  to: string;
+  blocks: StatementCurrencyBlock[];
+}
+
+export interface StatementInvoiceLine {
+  itemName: string;
+  unitName: string;
+  quantity: number;
+  unitPrice: number;
+  lineDiscount: number;
+  lineTotal: number;
+}
+
+export interface StatementInvoiceDetail {
+  invoice: {
+    id: number;
+    invoiceNumber: string;
+    invoiceDate: string;
+    currency: string;
+    subTotal: number;
+    discountAmount: number;
+    taxAmount: number;
+    totalAmount: number;
+    paidAmount: number;
+    status: number;
+    notes?: string | null;
+    companyCode: string;
+    companyName: string;
+  };
+  lines: StatementInvoiceLine[];
+}
+
+export interface StatementPaymentDetail {
+  id: number;
+  receiptNumber: string;
+  paymentDate: string;
+  amount: number;
+  paymentMethod: string;
+  referenceNumber?: string | null;
+  notes?: string | null;
+  salesInvoiceId?: number | null;
+  invoiceNumber: string;
+  currency: string;
+  companyCode: string;
+  companyName: string;
 }
 
 export interface StatementQuery {
@@ -202,23 +260,33 @@ export interface CartItem {
 
 // ── Orders ────────────────────────────────────────────────────────────────────
 
+export type OrderSourceType = 'Order' | 'Invoice';
+
+export type OrderStatus =
+  | 'Pending' | 'Received' | 'InProcessing' | 'InvoiceIssued' | 'Shipping' | 'Delivered' | 'Rejected'
+  | 'Issued' | 'PartiallyPaid' | 'Paid';
+
 export interface Order {
   id: string;
+  sourceType: OrderSourceType;
   orderNumber: string;
   companyCode: string;
   companyName: string;
-  status: 'Pending' | 'Received' | 'InProcessing' | 'InvoiceIssued' | 'Shipping' | 'Delivered' | 'Rejected';
+  status: OrderStatus;
   totalAmount: number;
+  currency?: string;
   createdAt: string;
+  notes?: string | null;
   items: OrderItem[];
 }
 
 export interface OrderItem {
-  productId: number;
+  productId?: number;
   productName: string;
   quantity: number;
   unitPrice: number;
-  unitOfMeasureName: string;
+  unitOfMeasureName?: string | null;
+  unitOfMeasureNameEn?: string | null;
 }
 
 // ── Pagination ────────────────────────────────────────────────────────────────

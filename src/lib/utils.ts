@@ -29,6 +29,12 @@ export function formatNumber(value: number, decimals = 0) {
   }).format(value);
 }
 
+/** مبلغ بدون رمز العملة — للعرض مع عنوان مستقل للعملة */
+export function formatAmount(amount: number, currency = 'IQD') {
+  const decimals = currency === 'IQD' ? 0 : 2;
+  return formatNumber(amount, decimals);
+}
+
 export function formatCurrency(amount: number, currency = 'IQD') {
   try {
     return new Intl.NumberFormat('en-US', {

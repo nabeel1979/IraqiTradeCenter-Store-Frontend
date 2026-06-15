@@ -3,6 +3,7 @@ import type {
   Company, CompanyContact, CustomerCard, LinkCompanyPayload,
   LinkCustomerPayload, CustomerLinkTestResult, CustomerLinkResult,
   CompanyFinancial, AccountStatement, StatementQuery,
+  StatementInvoiceDetail, StatementPaymentDetail,
 } from '@/types';
 
 export const companiesApi = {
@@ -38,4 +39,14 @@ export const companiesApi = {
         to: q.to || undefined,
       },
     }).then((r) => r.data),
+
+  statementInvoice: (companyCode: string, invoiceId: number) =>
+    client.get<StatementInvoiceDetail>(
+      `/api/store/my-companies/statement/invoices/${encodeURIComponent(companyCode)}/${invoiceId}`,
+    ).then((r) => r.data),
+
+  statementPayment: (companyCode: string, paymentId: number) =>
+    client.get<StatementPaymentDetail>(
+      `/api/store/my-companies/statement/payments/${encodeURIComponent(companyCode)}/${paymentId}`,
+    ).then((r) => r.data),
 };

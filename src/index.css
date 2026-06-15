@@ -124,5 +124,11 @@
 
   }
 
+  /* جداول شبكية — لا تضع num-display على td مباشرة */
+  .statement-grid-table .statement-grid-cell,
+  .items-grid-table .items-grid-cell {
+    @apply border border-gray-200 dark:border-gray-700;
+  }
+
 }
 

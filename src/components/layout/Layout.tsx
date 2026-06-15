@@ -22,9 +22,9 @@ export function Layout() {
   }, [token, user, location.pathname, navigate]);
 
   return (
-    <div className="min-h-screen bg-surface dark:bg-gray-950">
+    <div className="min-h-screen overflow-x-hidden bg-surface dark:bg-gray-950">
       <Navbar />
-      <main className="mx-auto max-w-7xl px-4 py-6">
+      <main className="mx-auto w-full max-w-7xl px-3 py-6 sm:px-4">
         <Outlet />
       </main>
       <footer className="mt-16 border-t border-gray-200/80 bg-surface-card py-8 text-center text-sm text-gray-500 dark:border-gray-800 dark:bg-gray-900">

@@ -9,10 +9,12 @@ import { ProductCard } from '@/components/ProductCard';
 import { Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useCompanyStore } from '@/store/companyStore';
+import { useAuthStore } from '@/store/authStore';
 
 export function ProductsPage() {
   const { t } = useTranslation();
   const { companyCode: fixedCompany } = useCompanyStore();
+  const authed = !!useAuthStore((s) => s.token);
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState('');
   const [filterCompany, setFilterCompany] = useState(() => searchParams.get('company')?.toUpperCase() ?? '');
@@ -22,7 +24,7 @@ export function ProductsPage() {
   const activeCompany = fixedCompany ?? (filterCompany || undefined);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['products', { search, activeCompany, page }],
+    queryKey: ['products', { search, activeCompany, page, authed }],
     queryFn: () => productsApi.list({ search, companyCode: activeCompany, pageNumber: page, pageSize: 16 }),
   });
 

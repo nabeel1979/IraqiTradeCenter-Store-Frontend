@@ -22,6 +22,32 @@ interface AccountFiltersValue {
 
 const AccountFiltersContext = createContext<AccountFiltersValue | null>(null);
 
+/** أدوات تواريخ مساعدة (ISO yyyy-mm-dd بالتوقيت المحلي) */
+function isoLocal(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function getLast30DaysRange(): { from: string; to: string } {
+  const today = new Date();
+  const start = new Date(today.getTime() - 29 * 86400000);
+  return { from: isoLocal(start), to: isoLocal(today) };
+}
+
+type PresetKey = 'all' | 'month' | 'days30' | 'year';
+
+function isPresetActive(key: PresetKey, from: string, to: string): boolean {
+  const today = new Date();
+  const todayIso = isoLocal(today);
+  if (to !== todayIso) return false;
+  if (key === 'month') return from === isoLocal(new Date(today.getFullYear(), today.getMonth(), 1));
+  if (key === 'days30') return from === isoLocal(new Date(today.getTime() - 29 * 86400000));
+  if (key === 'year') return from === isoLocal(new Date(today.getFullYear(), 0, 1));
+  return false;
+}
+
 export function AccountFiltersProvider({
   companies,
   children,
@@ -29,9 +55,10 @@ export function AccountFiltersProvider({
   companies: AccountCompanyOption[];
   children: ReactNode;
 }) {
+  const defaultRange = getLast30DaysRange();
   const [companyCode, setCompanyCode] = useState<string | null>(null);
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
+  const [from, setFrom] = useState(defaultRange.from);
+  const [to, setTo] = useState(defaultRange.to);
 
   const value = useMemo<AccountFiltersValue>(
     () => ({
@@ -43,8 +70,9 @@ export function AccountFiltersProvider({
       setTo,
       reset: () => {
         setCompanyCode(null);
-        setFrom('');
-        setTo('');
+        const r = getLast30DaysRange();
+        setFrom(r.from);
+        setTo(r.to);
       },
       companies,
     }),
@@ -59,16 +87,6 @@ export function useAccountFilters(): AccountFiltersValue {
   if (!ctx) throw new Error('useAccountFilters must be used within AccountFiltersProvider');
   return ctx;
 }
-
-/** أدوات تواريخ مساعدة (ISO yyyy-mm-dd بالتوقيت المحلي) */
-function isoLocal(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-
-type PresetKey = 'all' | 'month' | 'days30' | 'year';
 
 /**
  * شريط فلترة موحّد: اختيار الشركة + نطاق التواريخ مع اختصارات.
@@ -93,7 +111,10 @@ export function AccountFilterBar() {
     setTo(isoLocal(today));
   };
 
-  const hasFilters = !!companyCode || !!from || !!to;
+  const hasFilters =
+    !!companyCode
+    || (!from && !to)
+    || (!!from && !!to && !isPresetActive('days30', from, to));
 
   const presets: { key: PresetKey; label: string }[] = [
     { key: 'all', label: t('filters.all') },
@@ -180,14 +201,4 @@ export function AccountFilterBar() {
       </div>
     </div>
   );
-}
-
-function isPresetActive(key: PresetKey, from: string, to: string): boolean {
-  const today = new Date();
-  const todayIso = isoLocal(today);
-  if (to !== todayIso) return false;
-  if (key === 'month') return from === isoLocal(new Date(today.getFullYear(), today.getMonth(), 1));
-  if (key === 'days30') return from === isoLocal(new Date(today.getTime() - 29 * 86400000));
-  if (key === 'year') return from === isoLocal(new Date(today.getFullYear(), 0, 1));
-  return false;
 }
