@@ -44,10 +44,10 @@ export function HomePage() {
                 {t('products')} <ArrowIcon className="h-4 w-4" />
               </Link>
               <Link
-                to="/auth/register"
+                to={authed ? '/account' : '/auth/register'}
                 className="inline-flex items-center gap-2 rounded-xl border-2 border-brand-400 bg-white/80 px-4 py-2 text-sm font-bold text-brand-700 transition hover:bg-brand-50 dark:border-brand-600 dark:bg-gray-900/50 dark:text-brand-300 dark:hover:bg-brand-950/40"
               >
-                {t('register')}
+                {authed ? t('myAccount') : t('register')}
               </Link>
             </div>
           </div>

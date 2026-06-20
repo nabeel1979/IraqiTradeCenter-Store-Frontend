@@ -1,12 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import {
   Wallet, Plus, Send, ListOrdered, X, ArrowDownCircle, ArrowUpCircle,
-  CheckCircle2, Loader2, Copy, Check, Printer,
+  CheckCircle2, Loader2, Copy, Check, Printer, ScanLine, Download,
 } from 'lucide-react';
+import { QRCodeCanvas } from 'qrcode.react';
 import { walletApi, type MyWallet, type ResolveRecipientResult } from '@/api/wallet';
+import { QrScannerModal } from '@/components/shared/QrScannerModal';
 import { Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Badge } from '@/components/ui/Badge';
@@ -19,6 +21,7 @@ export function WalletDigital() {
 
   const [statementWallet, setStatementWallet] = useState<MyWallet | null>(null);
   const [sendWallet, setSendWallet] = useState<MyWallet | null>(null);
+  const [qrWallet, setQrWallet] = useState<MyWallet | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const copyAccountCode = (w: MyWallet) => {
@@ -58,29 +61,44 @@ export function WalletDigital() {
           {accounts.map((w) => (
             <div key={w.id} className="card overflow-hidden">
               <div className="bg-gradient-to-br from-brand-500 via-brand-600 to-brand-400 p-5 text-white">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 opacity-90">
-                    <Wallet className="h-5 w-5" />
-                    <span className="text-sm font-medium">{w.groupName}</span>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 opacity-95">
+                      <span className="inline-flex items-center gap-1.5 text-sm font-semibold">
+                        <Wallet className="h-5 w-5" />
+                        {w.groupName}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => copyAccountCode(w)}
+                        title={t('copyAccountCode')}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-white/15 px-2 py-1 font-mono text-xs backdrop-blur transition hover:bg-white/25"
+                        dir="ltr"
+                      >
+                        {copiedId === w.id ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                        <span>{w.accountCode}</span>
+                      </button>
+                    </div>
+                    <p className="mt-3 text-xs opacity-80">{t('walletBalance')}</p>
+                    <p className="num-display mt-1 text-3xl font-extrabold" dir="ltr">
+                      {formatAmount(w.balance, w.currency)}
+                    </p>
                   </div>
-                  <Badge variant={w.isActive ? 'success' : 'danger'}>
-                    {w.isActive ? t('active') : t('inactive')}
-                  </Badge>
+                  <div className="flex shrink-0 flex-col items-end gap-2">
+                    <Badge variant={w.isActive ? 'success' : 'danger'}>
+                      {w.isActive ? t('active') : t('inactive')}
+                    </Badge>
+                    <button
+                      type="button"
+                      onClick={() => setQrWallet(w)}
+                      title={t('showQr')}
+                      className="rounded-xl bg-white p-1.5 shadow-md transition hover:scale-105"
+                      aria-label={t('showQr')}
+                    >
+                      <QRCodeCanvas value={w.accountCode} size={48} level="M" />
+                    </button>
+                  </div>
                 </div>
-                <p className="mt-3 text-xs opacity-80">{t('walletBalance')}</p>
-                <p className="num-display mt-1 text-3xl font-extrabold" dir="ltr">
-                  {formatAmount(w.balance, w.currency)}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => copyAccountCode(w)}
-                  title={t('copyAccountCode')}
-                  className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-white/15 px-2 py-1 font-mono text-xs backdrop-blur transition hover:bg-white/25"
-                  dir="ltr"
-                >
-                  {copiedId === w.id ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                  <span>{w.accountCode}</span>
-                </button>
               </div>
               <div className="flex gap-2 p-3">
                 <button
@@ -145,6 +163,56 @@ export function WalletDigital() {
           }}
         />
       )}
+
+      {qrWallet && <WalletQrModal wallet={qrWallet} onClose={() => setQrWallet(null)} />}
+    </div>
+  );
+}
+
+// ───────────────────────────── صفحة QR للحساب (دون بيانات) ─────────────────────────────
+
+function WalletQrModal({ wallet, onClose }: { wallet: MyWallet; onClose: () => void }) {
+  const { t } = useTranslation();
+  const qrRef = useRef<HTMLDivElement>(null);
+
+  const download = () => {
+    const canvas = qrRef.current?.querySelector('canvas');
+    if (!canvas) return;
+    const link = document.createElement('a');
+    link.download = `ITC-${wallet.accountCode}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  };
+
+  return (
+    <div className="fixed inset-0 z-[70] flex flex-col items-center justify-center bg-white p-6 dark:bg-gray-950">
+      <button
+        onClick={onClose}
+        className="absolute top-4 ltr:right-4 rtl:left-4 rounded-full p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+        aria-label={t('close')}
+      >
+        <X className="h-6 w-6" />
+      </button>
+
+      <div className="flex w-full max-w-sm flex-col items-center gap-6">
+        <div ref={qrRef} className="rounded-3xl border border-gray-100 bg-white p-6 shadow-xl dark:border-gray-800">
+          <QRCodeCanvas value={wallet.accountCode} size={236} level="M" marginSize={2} />
+        </div>
+
+        <div className="text-center">
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-400">{t('walletAccountNumber')}</p>
+          <p className="num-display mt-1 font-mono text-lg font-bold tracking-wider text-gray-900 dark:text-white" dir="ltr">
+            {wallet.accountCode}
+          </p>
+        </div>
+
+        <p className="max-w-xs text-center text-xs text-gray-400">{t('qrShareHint')}</p>
+
+        <button onClick={download} className="btn-outline">
+          <Download className="h-4 w-4" />
+          {t('qrDownload')}
+        </button>
+      </div>
     </div>
   );
 }
@@ -430,14 +498,16 @@ function SendMoneyModal({ wallet, onClose, onDone }: { wallet: MyWallet; onClose
   const [otp, setOtp] = useState('');
   const [otpChannel, setOtpChannel] = useState<string | null>(null);
   const [resendTimer, setResendTimer] = useState(0);
+  const [scanOpen, setScanOpen] = useState(false);
 
   const numericAmount = useMemo(() => Number(amount), [amount]);
 
-  const verifyRecipient = async () => {
-    if (!code.trim()) return;
+  const verifyRecipient = async (codeArg?: string) => {
+    const c = (codeArg ?? code).trim();
+    if (!c) return;
     setBusy(true);
     try {
-      const res = await walletApi.resolveRecipient(wallet.id, code.trim());
+      const res = await walletApi.resolveRecipient(wallet.id, c);
       setRecipient(res);
     } catch (e) {
       setRecipient(null);
@@ -445,6 +515,15 @@ function SendMoneyModal({ wallet, onClose, onDone }: { wallet: MyWallet; onClose
     } finally {
       setBusy(false);
     }
+  };
+
+  const handleScan = (text: string) => {
+    // نستخرج أرقام/أحرف كود الحساب من المحتوى المقروء
+    const cleaned = text.trim();
+    setScanOpen(false);
+    setCode(cleaned);
+    setRecipient(null);
+    void verifyRecipient(cleaned);
   };
 
   const initiate = async () => {
@@ -536,7 +615,16 @@ function SendMoneyModal({ wallet, onClose, onDone }: { wallet: MyWallet; onClose
                     className="input flex-1 font-mono"
                     dir="ltr"
                   />
-                  <button type="button" onClick={verifyRecipient} disabled={busy || !code.trim()} className="btn-outline">
+                  <button
+                    type="button"
+                    onClick={() => setScanOpen(true)}
+                    title={t('scanQr')}
+                    aria-label={t('scanQr')}
+                    className="btn-outline shrink-0 px-3"
+                  >
+                    <ScanLine className="h-5 w-5" />
+                  </button>
+                  <button type="button" onClick={() => verifyRecipient()} disabled={busy || !code.trim()} className="btn-outline shrink-0">
                     {t('verifyRecipient')}
                   </button>
                 </div>
@@ -627,6 +715,10 @@ function SendMoneyModal({ wallet, onClose, onDone }: { wallet: MyWallet; onClose
           )}
         </div>
       </div>
+
+      {scanOpen && (
+        <QrScannerModal onClose={() => setScanOpen(false)} onResult={handleScan} />
+      )}
     </div>
   );
 }

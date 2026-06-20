@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { Mail, MessageCircle } from 'lucide-react';
 
 import { authApi, type LoginMethod, type OtpPurpose } from '@/api/auth';
+import { normalizePhoneForApi } from '@/lib/phone/normalize';
 
 import { useAuthStore } from '@/store/authStore';
 
@@ -37,6 +38,12 @@ export function VerifyOtpPage() {
     loginMethod,
 
     registerMethod,
+    accountType,
+
+    deliveryMessage = '',
+    deliveryNote = '',
+    whatsappSent,
+    emailSent,
 
   } = (location.state as {
 
@@ -51,6 +58,12 @@ export function VerifyOtpPage() {
     loginMethod?: LoginMethod;
 
     registerMethod?: LoginMethod;
+    accountType?: string;
+
+    deliveryMessage?: string;
+    deliveryNote?: string;
+    whatsappSent?: boolean;
+    emailSent?: boolean;
 
   }) ?? {};
 
@@ -67,6 +80,8 @@ export function VerifyOtpPage() {
   const [activeChannel, setActiveChannel] = useState(channel);
 
   const [activeEmail, setActiveEmail] = useState(email);
+  const [dualDelivery, setDualDelivery] = useState(Boolean(whatsappSent && emailSent));
+  const [deliveryHint, setDeliveryHint] = useState(deliveryNote || deliveryMessage || '');
 
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -133,6 +148,8 @@ export function VerifyOtpPage() {
 
 
 
+  const apiPhone = normalizePhoneForApi(phone);
+
   const handleVerify = async () => {
 
     const code = otp.join('');
@@ -143,9 +160,17 @@ export function VerifyOtpPage() {
 
     try {
 
-      const res = await authApi.verifyOtp({ phone, otp: code, purpose });
+      const res = await authApi.verifyOtp({ phone: apiPhone, otp: code, purpose });
 
       setAuth(res.user, res.token);
+
+      if (!isLogin) {
+        toast.success(t('verifySuccess'));
+        navigate('/auth/business-photos', {
+          state: { accountType: accountType ?? res.user.accountType },
+        });
+        return;
+      }
 
       if (res.user.isProfileCompleted === false) {
         toast.success(t('phoneVerified'));
@@ -153,9 +178,9 @@ export function VerifyOtpPage() {
         return;
       }
 
-      toast.success(isLogin ? t('welcomeBack') : t('verifySuccess'));
+      toast.success(t('welcomeBack'));
 
-      navigate(isLogin ? '/' : '/account');
+      navigate('/');
 
     } catch (err: unknown) {
 
@@ -175,13 +200,17 @@ export function VerifyOtpPage() {
 
   const handleResend = async () => {
     try {
-      const res = await authApi.resendOtp(phone, purpose, otpMethod);
+      const res = await authApi.resendOtp(apiPhone, purpose, otpMethod);
       if (res.channel) setActiveChannel(res.channel);
       if (res.emailHint) setActiveEmail(res.emailHint);
+      setDualDelivery(Boolean(res.whatsappSent && res.emailSent));
+      setDeliveryHint(res.deliveryNote || (res.fallbackUsed ? (res.message ?? '') : ''));
 
       setResendTimer(60);
       setOtp(Array(6).fill(''));
-      toast.success(res.message ?? t('resendSuccess'));
+      if (res.fallbackUsed) toast.warning(res.message ?? t('resendSuccess'));
+      else if (res.whatsappSent && res.emailSent) toast.success(res.message ?? t('resendSuccess'));
+      else toast.success(res.message ?? t('resendSuccess'));
     } catch {
       toast.error(t('resendFailed'));
     }
@@ -189,9 +218,9 @@ export function VerifyOtpPage() {
 
 
 
-  const Icon = activeChannel === 'whatsapp' ? MessageCircle : Mail;
-
-  const iconBg = activeChannel === 'whatsapp' ? 'bg-emerald-600' : 'bg-brand-500';
+  const showDual = dualDelivery || (activeChannel === 'whatsapp' && Boolean(activeEmail));
+  const Icon = showDual || activeChannel === 'whatsapp' ? MessageCircle : Mail;
+  const iconBg = showDual || activeChannel === 'whatsapp' ? 'bg-emerald-600' : 'bg-brand-500';
 
 
 
@@ -215,17 +244,38 @@ export function VerifyOtpPage() {
 
           </h1>
 
-          <p className="mt-2 text-sm text-gray-500">
+          {deliveryHint && (
+            <p className="mt-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+              {deliveryHint}
+            </p>
+          )}
 
-            {t('otpSent')}{' '}
-
-            <span className="font-semibold text-gray-700 dark:text-gray-300 num-display" dir="ltr">
-
-              {activeChannel === 'whatsapp' ? phone : activeEmail || phone}
-
-            </span>
-
-          </p>
+          {showDual ? (
+            <div className="mt-2 space-y-1 text-sm text-gray-500">
+              <p>{t('otpSentDual')}</p>
+              <p>
+                {t('otpSentWhatsappLine')}:{' '}
+                <span className="font-semibold text-gray-700 dark:text-gray-300 num-display" dir="ltr">{phone}</span>
+              </p>
+              <p>
+                {t('otpSentEmailLine')}:{' '}
+                <span className="font-semibold text-gray-700 dark:text-gray-300 num-display" dir="ltr">{activeEmail}</span>
+              </p>
+              <p className="text-xs">{t('otpCheckSpam')}</p>
+            </div>
+          ) : (
+            <>
+              <p className="mt-2 text-sm text-gray-500">
+                {activeChannel === 'whatsapp' ? t('otpSentWhatsapp') : t('otpSentEmail')}{' '}
+                <span className="font-semibold text-gray-700 dark:text-gray-300 num-display" dir="ltr">
+                  {activeChannel === 'whatsapp' ? phone : activeEmail || phone}
+                </span>
+              </p>
+              {(activeChannel === 'email' || dualDelivery) && (
+                <p className="mt-1 text-xs text-gray-500">{t('otpCheckSpam')}</p>
+              )}
+            </>
+          )}
 
         </div>
 

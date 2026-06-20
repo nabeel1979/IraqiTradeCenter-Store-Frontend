@@ -14,6 +14,7 @@ import { LoginPage } from './pages/auth/LoginPage';
 import { RegisterPage } from './pages/auth/RegisterPage';
 import { VerifyOtpPage } from './pages/auth/VerifyOtpPage';
 import { CompleteProfilePage } from './pages/auth/CompleteProfilePage';
+import { BusinessPhotosPage } from './pages/auth/BusinessPhotosPage';
 import { AccountPage } from './pages/account/AccountPage';
 import { AccountProfile } from './pages/account/AccountProfile';
 import { CustomerCards } from './pages/account/CustomerCards';
@@ -80,6 +81,7 @@ function App() {
         <Route path="auth/register" element={<RegisterPage />} />
         <Route path="auth/verify" element={<VerifyOtpPage />} />
         <Route path="auth/complete-profile" element={<CompleteProfilePage />} />
+        <Route path="auth/business-photos" element={<BusinessPhotosPage />} />
 
         <Route path="account" element={<AccountPage />}>
           <Route index element={<AccountProfile />} />

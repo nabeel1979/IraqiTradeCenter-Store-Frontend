@@ -1,20 +1,28 @@
 // ── Auth ─────────────────────────────────────────────────────────────────────
 
-export type AccountType = 'Trader' | 'Company';
+export type AccountType = 'Customer' | 'Trader' | 'Company';
 
 export interface StoreUser {
   id: string;
   userCode: string;          // 12-char alphanumeric
   fullName: string;
+  fullNameEn?: string | null;
   phone: string;
   contactPhone?: string | null;
   email?: string | null;
+  businessName?: string | null;
+  businessNameEn?: string | null;
   country?: string | null;
   city?: string | null;
+  countryId?: number | null;
+  cityId?: number | null;
   address?: string | null;
   detailedAddress?: string | null;
+  detailedAddressEn?: string | null;
+  locationUrl?: string | null;
   accountType: AccountType;
   isVerified: boolean;
+  isApproved?: boolean;
   isProfileCompleted?: boolean;
   contactLocked?: boolean;
   createdAt: string;

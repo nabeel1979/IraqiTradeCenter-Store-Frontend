@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 import { Mail, MessageCircle } from 'lucide-react';
 import { authApi, type LoginMethod } from '@/api/auth';
+import { PhoneInput } from '@/components/shared/PhoneInput';
 
 type FormData = {
   phone?: string;
@@ -32,7 +33,7 @@ export function LoginPage() {
     });
   }, [t, loginMethod]);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
 
@@ -49,7 +50,8 @@ export function LoginPage() {
         email: data.email?.trim(),
       });
       const resChannel = res.channel === 'email' ? 'email' : 'whatsapp';
-      toast.success(res.message ?? (isEmail ? t('loginOtpSentEmail') : t('loginOtpSent')));
+      if (res.fallbackUsed) toast.warning(res.message);
+      else toast.success(res.message ?? (isEmail ? t('loginOtpSentEmail') : t('loginOtpSent')));
       navigate('/auth/verify', {
         state: {
           phone: res.phone ?? data.phone?.trim() ?? '',
@@ -57,6 +59,10 @@ export function LoginPage() {
           channel: resChannel,
           email: res.emailHint ?? data.email ?? '',
           loginMethod,
+          deliveryMessage: res.message,
+          deliveryNote: res.deliveryNote,
+          whatsappSent: res.whatsappSent,
+          emailSent: res.emailSent,
         },
       });
     } catch (err: unknown) {
@@ -114,7 +120,10 @@ export function LoginPage() {
             ) : (
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">{t('whatsappPhone')}</label>
-                <input {...register('phone')} className="input" placeholder="07xxxxxxxxx" dir="ltr" />
+                <PhoneInput
+                  value={watch('phone') ?? ''}
+                  onChange={v => setValue('phone', v, { shouldValidate: true })}
+                />
                 {errors.phone && <p className="mt-1 text-xs text-red-500">{errors.phone.message}</p>}
                 <p className="mt-1.5 text-xs text-gray-500">{t('loginWhatsappNote')}</p>
               </div>

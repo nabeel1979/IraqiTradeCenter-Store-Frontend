@@ -15,6 +15,10 @@ export interface OtpDeliveryConfig {
 export interface OtpSendResponse {
   message: string;
   channel?: OtpChannel;
+  whatsappSent?: boolean;
+  emailSent?: boolean;
+  fallbackUsed?: boolean;
+  deliveryNote?: string | null;
   emailHint?: string | null;
   phone?: string;
 }
@@ -30,6 +34,26 @@ export interface RegisterStartPayload {
   accountType: AccountType;
   phone?: string;
   email?: string;
+  fullName?: string;
+  fullNameEn?: string;
+  contactPhone?: string;
+  businessName?: string;
+  businessNameEn?: string;
+  countryId?: number | null;
+  cityId?: number | null;
+  country?: string;
+  city?: string;
+  detailedAddress?: string;
+  detailedAddressEn?: string;
+  locationUrl?: string;
+}
+
+export interface StoreUserPhoto {
+  id: string;
+  fileName: string;
+  contentType?: string | null;
+  sizeBytes: number;
+  createdAt: string;
 }
 
 export interface CompleteProfilePayload {
@@ -74,4 +98,32 @@ export const authApi = {
 
   me: () =>
     client.get<StoreUser>('/api/store/auth/me').then((r) => r.data),
+
+  listPhotos: () =>
+    client.get<{ data: StoreUserPhoto[] }>('/api/store/auth/photos').then((r) => r.data.data),
+
+  uploadPhoto: (file: File) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return client
+      .post<{ data: StoreUserPhoto }>('/api/store/auth/photos', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      .then((r) => r.data.data);
+  },
+
+  deletePhoto: (id: string) =>
+    client.delete(`/api/store/auth/photos/${id}`).then((r) => r.data),
+};
+
+export interface GeoCountry { id: number; code: string; nameAr: string; nameEn: string }
+export interface GeoCity { id: number; countryId: number; nameAr: string; nameEn: string }
+
+export const geographyApi = {
+  countries: () =>
+    client.get<{ data: GeoCountry[] }>('/api/store/geography/countries').then((r) => r.data.data),
+  cities: (countryId?: number) =>
+    client
+      .get<{ data: GeoCity[] }>('/api/store/geography/cities', { params: countryId ? { countryId } : {} })
+      .then((r) => r.data.data),
 };
